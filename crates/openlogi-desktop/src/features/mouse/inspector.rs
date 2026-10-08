@@ -19,7 +19,7 @@ use super::hotspots::MouseControlId;
 use super::thumbwheel::ThumbwheelPreset;
 use super::view::MouseModelView;
 use crate::features::binding_editor::{
-    GESTURE_BUTTON_ICON, PickFn, action_icon_path, action_rows_matching, application_editor,
+    GESTURE_BUTTON_ICON, PickFn, action_icon_path, action_rows_with, application_editor,
     command_editor, editor_section, gesture_direction_icon,
 };
 use crate::state::AppState;
@@ -47,6 +47,7 @@ pub(super) struct BindingInspectorData<'a> {
     /// [`ForceSensingFacts::current`](super::force_sensing::ForceSensingFacts::current)
     /// says it shows.
     pub press_force: Option<PressForce<'a>>,
+    pub extra_actions: &'a [Action],
 }
 
 #[derive(Clone, Copy)]
@@ -154,6 +155,10 @@ fn empty_inspector(app: Option<&str>, override_count: usize, pal: Palette) -> gp
         .child(div().text_body().text_color(pal.text_muted).child(summary))
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "the button inspector lays out its rows inline"
+)]
 fn button_inspector(
     button: ButtonId,
     data: &BindingInspectorData<'_>,
@@ -258,6 +263,7 @@ fn button_inspector(
                 "inspector-action",
                 Some(&action),
                 picker,
+                data.extra_actions,
                 &on_pick,
                 pal,
                 cx,
@@ -392,6 +398,7 @@ fn inherited_gesture_inspector(
                 "inspector-gesture-override",
                 None,
                 picker,
+                &[],
                 &on_pick,
                 pal,
                 cx,
@@ -463,6 +470,7 @@ fn gesture_inspector(
                 "inspector-gesture-action",
                 Some(&current),
                 picker,
+                &[],
                 &on_pick,
                 pal,
                 cx,
@@ -780,12 +788,13 @@ fn action_library(
     id_prefix: &'static str,
     current: Option<&Action>,
     picker: ActionPickerContext<'_>,
+    extra: &[Action],
     on_pick: &PickFn,
     pal: Palette,
     cx: &Context<MouseModelView>,
 ) -> impl IntoElement {
     let query = picker.search.read(cx).value();
-    let rows = action_rows_matching(id_prefix, current, &query, on_pick, pal);
+    let rows = action_rows_with(id_prefix, current, &query, extra, on_pick, pal);
     v_flex()
         .gap_2()
         .pt_1()
@@ -981,6 +990,7 @@ mod tests {
             bindings,
             gesture_maps,
             dpi_gestures: false,
+            extra_actions: &[],
             virtual_thumbwheel: true,
             wheel_hold,
             editing_app: None,
