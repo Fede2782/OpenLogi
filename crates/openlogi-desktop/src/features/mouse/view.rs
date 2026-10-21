@@ -40,6 +40,9 @@ const TWO_SIDED_LABEL_MIN_W: f32 = 700.;
 const CARD_EDGE_INSET: f32 = SIDE_GAP;
 
 const HOTSPOT_DOT: f32 = 12.;
+/// Left out for a device without an Actions Ring tab.
+const NO_ACTIONS_RING: &[Action] = &[Action::ShowActionsRing];
+
 /// The held actions, which only a button press can run.
 fn held_actions(offer_gshift: bool) -> &'static [Action] {
     const ACTIONS: [Action; 2] = [Action::DpiShift, Action::GShift];
@@ -85,6 +88,8 @@ struct MouseWorkspaceData<'a> {
     overridden: Option<&'a BTreeMap<ButtonId, Action>>,
     /// Actions the picker offers beyond the catalog.
     extra_actions: &'static [Action],
+    /// Catalog actions the picker leaves out.
+    hidden_actions: &'static [Action],
 }
 
 impl<'a> MouseWorkspaceData<'a> {
@@ -124,6 +129,14 @@ impl<'a> MouseWorkspaceData<'a> {
             extra_actions: held_actions(
                 state.current_gaming_layout().is_some() && !state.editing_gshift(),
             ),
+            hidden_actions: if state
+                .current_record()
+                .is_none_or(crate::app::offers_actions_ring)
+            {
+                &[]
+            } else {
+                NO_ACTIONS_RING
+            },
         })
     }
 
@@ -146,6 +159,7 @@ impl<'a> MouseWorkspaceData<'a> {
             editing_app: None,
             overridden: None,
             extra_actions: &[],
+            hidden_actions: &[],
         }
     }
 }
@@ -386,6 +400,7 @@ impl Render for MouseModelView {
             editing_app,
             overridden,
             extra_actions,
+            hidden_actions,
         } = MouseWorkspaceData::read(cx).unwrap_or_else(MouseWorkspaceData::empty);
 
         let gesture_buttons: Vec<ButtonId> = gesture_maps
@@ -464,6 +479,7 @@ impl Render for MouseModelView {
                 overridden,
                 press_force: PressForce::of(force_sensing.as_ref(), self.force_sensing.as_ref()),
                 extra_actions,
+                hidden_actions,
             },
             ActionPickerContext {
                 open: self.action_picker_open,
