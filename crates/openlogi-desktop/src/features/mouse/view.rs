@@ -29,7 +29,7 @@ use crate::app::{glow_canvas, keyboard_glow};
 use crate::features::keyboard::editors::{PowerUserKind, text_editor_placeholder};
 use crate::features::profiles::{profile_canvas_status, profile_name};
 use crate::services::assets::{GlowGeometry, ResolvedAsset};
-use crate::state::{AppState, DeviceKey, DeviceRecord, StateEvent};
+use crate::state::{AppState, BindingLayer, DeviceKey, DeviceRecord, StateEvent};
 use crate::ui::theme::{self, ACCENT_BLUE};
 
 const SIDE_GAP: f32 = 24.;
@@ -120,14 +120,15 @@ impl<'a> MouseWorkspaceData<'a> {
                 .and_then(|record| record.capabilities)
                 .is_some_and(|capabilities| capabilities.virtual_thumbwheel),
             wheel_hold: state.wheel_hold_buttons(),
-            editing_app: if state.editing_gshift() {
+            editing_app: if state.binding_layer() == BindingLayer::GShift {
                 Some(tr!("actions.g_shift").to_string())
             } else {
                 state.editing_app().map(|app| profile_name(state, app))
             },
             overridden: state.editing_app_overrides(),
             extra_actions: held_actions(
-                state.current_gaming_layout().is_some() && !state.editing_gshift(),
+                state.current_gaming_layout().is_some()
+                    && state.binding_layer() == BindingLayer::Normal,
             ),
             hidden_actions: if state
                 .current_record()
